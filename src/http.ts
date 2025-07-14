@@ -102,11 +102,12 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+const PORT = parseInt(process.env.PORT || '3223', 10);
 
-app.listen(PORT, () => {
-  console.log(`MCP Stateless HTTP Server listening on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Server info: http://localhost:${PORT}/`);
-  console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+app.listen(PORT, HOST, () => {
+  console.log(`MCP Stateless HTTP Server listening on ${HOST}:${PORT}`);
+  console.log(`Health check: http://${HOST}:${PORT}/health`);
+  console.log(`Server info: http://${HOST}:${PORT}/`);
+  console.log(`MCP endpoint: http://${HOST}:${PORT}/mcp`);
 }); 
