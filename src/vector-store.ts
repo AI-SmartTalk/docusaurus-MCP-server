@@ -11,6 +11,7 @@ class VectorStore {
    * Upsert a document with its embedding
    */
   async upsert(path: string, content: string): Promise<void> {
+    console.log(`[VectorStore] Upserting document at path: ${path}`);
     const embedding = await getEmbedding(content);
     const now = new Date();
     
@@ -24,19 +25,25 @@ class VectorStore {
     };
     
     this.documents.set(path, docInfo);
+    console.log(`[VectorStore] Document upserted. Total documents: ${this.documents.size}`);
   }
 
   /**
    * Delete a document from the store
    */
   delete(path: string): boolean {
-    return this.documents.delete(path);
+    const existed = this.documents.has(path);
+    const result = this.documents.delete(path);
+    console.log(`[VectorStore] Delete document at path: ${path}. Existed: ${existed}, Deleted: ${result}. Total documents: ${this.documents.size}`);
+    return result;
   }
 
   /**
    * Get document content by path
    */
   get(path: string): DocumentInfo | undefined {
+    const found = this.documents.has(path);
+    console.log(`[VectorStore] Get document at path: ${path}. Found: ${found}`);
     return this.documents.get(path);
   }
 
@@ -44,13 +51,16 @@ class VectorStore {
    * List all document paths
    */
   listPaths(): string[] {
-    return Array.from(this.documents.keys());
+    const paths = Array.from(this.documents.keys());
+    console.log(`[VectorStore] Listing all document paths. Count: ${paths.length}`);
+    return paths;
   }
 
   /**
    * Search for documents using vector similarity
    */
   async search(query: string, topK: number = 5): Promise<SearchResult[]> {
+    console.log(`[VectorStore] Searching for query: "${query}" with topK: ${topK}`);
     const queryEmbedding = await getEmbedding(query);
     const results: SearchResult[] = [];
 
@@ -69,15 +79,22 @@ class VectorStore {
     }
 
     // Sort by score descending and take top K
-    return results
+    const sorted = results
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
+
+    console.log(`[VectorStore] Search complete. Results found: ${sorted.length}`);
+    if (sorted.length > 0) {
+      console.log(`[VectorStore] Top result:`, sorted[0]);
+    }
+    return sorted;
   }
 
   /**
    * Get total number of documents
    */
   size(): number {
+    console.log(`[VectorStore] Size requested. Total documents: ${this.documents.size}`);
     return this.documents.size;
   }
 
@@ -86,6 +103,7 @@ class VectorStore {
    */
   clear(): void {
     this.documents.clear();
+    console.log(`[VectorStore] All documents cleared.`);
   }
 }
 

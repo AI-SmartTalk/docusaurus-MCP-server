@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
 import { glob } from 'glob';
 import { vectorStore } from './vector-store.js';
@@ -15,6 +15,7 @@ export async function createDocument(
   markIncomplete: boolean = true
 ): Promise<{ status: string; path: string }> {
   const fullPath = path.join(DOCS_DIR, documentPath);
+  console.log(`[createDocument] Creating document at: ${fullPath} (markIncomplete: ${markIncomplete})`);
   
   // Ensure directory exists
   await fs.ensureDir(path.dirname(fullPath));
@@ -23,13 +24,16 @@ export async function createDocument(
   let finalContent = content;
   if (markIncomplete && !content.includes(WATERMARK)) {
     finalContent += `\n\n${WATERMARK}`;
+    console.log(`[createDocument] Watermark added to document at: ${documentPath}`);
   }
   
   // Write file
   await fs.writeFile(fullPath, finalContent, 'utf8');
+  console.log(`[createDocument] File written at: ${fullPath}`);
   
   // Update vector store
   await vectorStore.upsert(documentPath, finalContent);
+  console.log(`[createDocument] Vector store updated for: ${documentPath}`);
   
   return { status: 'created', path: documentPath };
 }
@@ -44,8 +48,10 @@ export async function updateDocument(
   newText: string
 ): Promise<{ status: string; path: string }> {
   const fullPath = path.join(DOCS_DIR, documentPath);
+  console.log(`[updateDocument] Updating document at: ${fullPath} (lines ${startLine} to ${endLine})`);
   
   if (!await fs.pathExists(fullPath)) {
+    console.error(`[updateDocument] Document not found: ${documentPath}`);
     throw new Error(`Document not found: ${documentPath}`);
   }
   
@@ -58,9 +64,11 @@ export async function updateDocument(
   
   const updatedContent = lines.join('\n');
   await fs.writeFile(fullPath, updatedContent, 'utf8');
+  console.log(`[updateDocument] File updated at: ${fullPath}`);
   
   // Update vector store
   await vectorStore.upsert(documentPath, updatedContent);
+  console.log(`[updateDocument] Vector store updated for: ${documentPath}`);
   
   return { status: 'updated', path: documentPath };
 }
@@ -73,8 +81,10 @@ export async function continueDocument(
   continuation: string
 ): Promise<{ status: string; path: string }> {
   const fullPath = path.join(DOCS_DIR, documentPath);
+  console.log(`[continueDocument] Continuing document at: ${fullPath}`);
   
   if (!await fs.pathExists(fullPath)) {
+    console.error(`[continueDocument] Document not found: ${documentPath}`);
     throw new Error(`Document not found: ${documentPath}`);
   }
   
@@ -84,12 +94,15 @@ export async function continueDocument(
   // Remove watermark if document seems complete (continuation doesn't end with watermark)
   if (updatedContent.includes(WATERMARK) && !continuation.trim().endsWith(WATERMARK)) {
     updatedContent = updatedContent.replace(WATERMARK, '');
+    console.log(`[continueDocument] Watermark removed from document at: ${documentPath}`);
   }
   
   await fs.writeFile(fullPath, updatedContent, 'utf8');
+  console.log(`[continueDocument] File updated at: ${fullPath}`);
   
   // Update vector store
   await vectorStore.upsert(documentPath, updatedContent);
+  console.log(`[continueDocument] Vector store updated for: ${documentPath}`);
   
   return { status: 'continued', path: documentPath };
 }
@@ -99,8 +112,10 @@ export async function continueDocument(
  */
 export async function getDocumentContent(documentPath: string): Promise<string> {
   const fullPath = path.join(DOCS_DIR, documentPath);
+  console.log(`[getDocumentContent] Getting content for: ${fullPath}`);
   
   if (!await fs.pathExists(fullPath)) {
+    console.error(`[getDocumentContent] Document not found: ${documentPath}`);
     throw new Error(`Document not found: ${documentPath}`);
   }
   
@@ -112,6 +127,7 @@ export async function getDocumentContent(documentPath: string): Promise<string> 
  */
 export async function getUnfinishedDocuments(): Promise<string[]> {
   const pattern = path.join(DOCS_DIR, '**/*.md').replace(/\\/g, '/');
+  console.log(`[getUnfinishedDocuments] Searching for unfinished documents with pattern: ${pattern}`);
   const files = await glob(pattern);
   const unfinished: string[] = [];
   
@@ -121,12 +137,14 @@ export async function getUnfinishedDocuments(): Promise<string[]> {
       if (content.includes(WATERMARK)) {
         const relativePath = path.relative(DOCS_DIR, file);
         unfinished.push(relativePath);
+        console.log(`[getUnfinishedDocuments] Unfinished document found: ${relativePath}`);
       }
     } catch (error) {
       console.warn(`Error reading file ${file}:`, error);
     }
   }
   
+  console.log(`[getUnfinishedDocuments] Total unfinished documents: ${unfinished.length}`);
   return unfinished;
 }
 
@@ -135,13 +153,17 @@ export async function getUnfinishedDocuments(): Promise<string[]> {
  */
 export async function deleteDocument(documentPath: string): Promise<{ status: string; path: string }> {
   const fullPath = path.join(DOCS_DIR, documentPath);
+  console.log(`[deleteDocument] Deleting document at: ${fullPath}`);
   
   if (!await fs.pathExists(fullPath)) {
+    console.error(`[deleteDocument] Document not found: ${documentPath}`);
     throw new Error(`Document not found: ${documentPath}`);
   }
   
   await fs.remove(fullPath);
+  console.log(`[deleteDocument] File removed at: ${fullPath}`);
   vectorStore.delete(documentPath);
+  console.log(`[deleteDocument] Vector store entry deleted for: ${documentPath}`);
   
   return { status: 'deleted', path: documentPath };
 }
@@ -151,6 +173,7 @@ export async function deleteDocument(documentPath: string): Promise<{ status: st
  */
 export async function syncDocuments(): Promise<{ synced: number; errors: number }> {
   const pattern = path.join(DOCS_DIR, '**/*.{md,mdx}').replace(/\\/g, '/');
+  console.log(`[syncDocuments] Syncing documents with pattern: ${pattern}`);
   const files = await glob(pattern);
   
   let synced = 0;
@@ -162,11 +185,13 @@ export async function syncDocuments(): Promise<{ synced: number; errors: number 
       const relativePath = path.relative(DOCS_DIR, file);
       await vectorStore.upsert(relativePath, content);
       synced++;
+      console.log(`[syncDocuments] Synced: ${relativePath}`);
     } catch (error) {
       console.warn(`Error syncing file ${file}:`, error);
       errors++;
     }
   }
   
+  console.log(`[syncDocuments] Sync complete. Synced: ${synced}, Errors: ${errors}`);
   return { synced, errors };
 } 

@@ -14,6 +14,7 @@ import { applyStyle, getAvailableStyles } from './styles.js';
 import { metricsService } from './metrics.js';
 
 export function createServer(): McpServer {
+  console.log("[createServer] Initializing MCP server...");
   const server = new McpServer({
     name: "docusaurus-mcp-server",
     version: "1.0.0"
@@ -28,8 +29,10 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[health_check] Invoked");
       metricsService.incrementRequests();
       const health = metricsService.getHealth();
+      console.log("[health_check] Health status:", health);
       return {
         content: [{
           type: "text",
@@ -48,8 +51,10 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[metrics] Invoked");
       metricsService.incrementRequests();
       const metrics = metricsService.getMetrics();
+      console.log("[metrics] Metrics:", metrics);
       return {
         content: [{
           type: "text",
@@ -73,10 +78,12 @@ export function createServer(): McpServer {
       }
     },
     async ({ path, title, content, mark_incomplete = true }) => {
+      console.log("[create_document] Invoked with:", { path, title, mark_incomplete });
       metricsService.incrementRequests();
       try {
         const fullContent = `# ${title}\n\n${content}`;
         const result = await createDocument(path, fullContent, mark_incomplete);
+        console.log("[create_document] Document created:", result);
         return {
           content: [{
             type: "text",
@@ -84,6 +91,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[create_document] Error:", error);
         return {
           content: [{
             type: "text",
@@ -108,9 +116,11 @@ export function createServer(): McpServer {
       }
     },
     async ({ path, line_begin, line_end, new_text }) => {
+      console.log("[update_docs] Invoked with:", { path, line_begin, line_end });
       metricsService.incrementRequests();
       try {
         const result = await updateDocument(path, line_begin, line_end, new_text);
+        console.log("[update_docs] Document updated:", result);
         return {
           content: [{
             type: "text",
@@ -118,6 +128,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[update_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -140,9 +151,11 @@ export function createServer(): McpServer {
       }
     },
     async ({ path, continuation }) => {
+      console.log("[continue_docs] Invoked with:", { path });
       metricsService.incrementRequests();
       try {
         const result = await continueDocument(path, continuation);
+        console.log("[continue_docs] Document continued:", result);
         return {
           content: [{
             type: "text",
@@ -150,6 +163,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[continue_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -171,9 +185,11 @@ export function createServer(): McpServer {
       }
     },
     async ({ path }) => {
+      console.log("[get_docs] Invoked with:", { path });
       metricsService.incrementRequests();
       try {
         const content = await getDocumentContent(path);
+        console.log("[get_docs] Document content retrieved");
         return {
           content: [{
             type: "text",
@@ -181,6 +197,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[get_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -200,9 +217,11 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[unfinished_docs] Invoked");
       metricsService.incrementRequests();
       try {
         const unfinished = await getUnfinishedDocuments();
+        console.log("[unfinished_docs] Unfinished documents:", unfinished);
         return {
           content: [{
             type: "text",
@@ -210,6 +229,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[unfinished_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -232,9 +252,11 @@ export function createServer(): McpServer {
       }
     },
     async ({ query, top_k = 5 }) => {
+      console.log("[search_docs] Invoked with:", { query, top_k });
       metricsService.incrementRequests();
       try {
         const results = await vectorStore.search(query, top_k);
+        console.log("[search_docs] Search results:", results);
         return {
           content: [{
             type: "text",
@@ -242,6 +264,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[search_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -261,9 +284,11 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[get_sitemap] Invoked");
       metricsService.incrementRequests();
       try {
         const sitemap = await generateSitemap();
+        console.log("[get_sitemap] Sitemap generated");
         return {
           content: [{
             type: "text",
@@ -271,6 +296,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[get_sitemap] Error:", error);
         return {
           content: [{
             type: "text",
@@ -293,9 +319,11 @@ export function createServer(): McpServer {
       }
     },
     async ({ style_id, content }) => {
+      console.log("[apply_style] Invoked with:", { style_id });
       metricsService.incrementRequests();
       try {
         const result = applyStyle(style_id, content);
+        console.log("[apply_style] Style applied:", result);
         return {
           content: [{
             type: "text",
@@ -303,6 +331,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[apply_style] Error:", error);
         return {
           content: [{
             type: "text",
@@ -322,9 +351,11 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[sync_docs] Invoked");
       metricsService.incrementRequests();
       try {
         const result = await syncDocuments();
+        console.log("[sync_docs] Documents synced:", result);
         return {
           content: [{
             type: "text",
@@ -332,6 +363,7 @@ export function createServer(): McpServer {
           }]
         };
       } catch (error) {
+        console.error("[sync_docs] Error:", error);
         return {
           content: [{
             type: "text",
@@ -351,8 +383,10 @@ export function createServer(): McpServer {
       inputSchema: {}
     },
     async () => {
+      console.log("[get_styles] Invoked");
       metricsService.incrementRequests();
       const styles = getAvailableStyles();
+      console.log("[get_styles] Available styles:", styles);
       return {
         content: [{
           type: "text",
@@ -362,5 +396,6 @@ export function createServer(): McpServer {
     }
   );
 
+  console.log("[createServer] MCP server initialized and tools registered.");
   return server;
 } 

@@ -17,7 +17,7 @@ build: ## Build the TypeScript project
 
 start-http: ## Start the HTTP server in background
 	@echo "Starting HTTP server..."
-	npm run http &
+	npm run http 
 	@echo "Server PID: $$!"
 	@echo "Waiting for server to start..."
 	@sleep 2
