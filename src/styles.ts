@@ -1,0 +1,101 @@
+/**
+ * Available style transformations for markdown content
+ */
+const STYLE_MAP: Record<string, (content: string) => string> = {
+  'bold_headers': (content: string) => {
+    return content.replace(/^(#+)\s+(.+)$/gm, '$1 **$2**');
+  },
+  
+  'add_spacing': (content: string) => {
+    return content.replace(/\n/g, '\n\n');
+  },
+  
+  'remove_comments': (content: string) => {
+    return content
+      .split('\n')
+      .filter(line => !line.trim().startsWith('<!--'))
+      .join('\n');
+  },
+  
+  'clean_whitespace': (content: string) => {
+    return content
+      .replace(/[ \t]+$/gm, '') // Remove trailing whitespace
+      .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
+      .trim();
+  },
+  
+  'add_toc': (content: string) => {
+    const lines = content.split('\n');
+    const toc: string[] = ['## Table of Contents', ''];
+    
+    for (const line of lines) {
+      const match = line.match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const title = match[2];
+        const indent = '  '.repeat(level - 1);
+        const anchor = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        toc.push(`${indent}- [${title}](#${anchor})`);
+      }
+    }
+    
+    if (toc.length > 2) {
+      toc.push('');
+      return toc.join('\n') + content;
+    }
+    
+    return content;
+  },
+  
+  'format_code_blocks': (content: string) => {
+    return content.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
+      const language = lang || 'text';
+      const formattedCode = code.trim();
+      return `\`\`\`${language}\n${formattedCode}\n\`\`\``;
+    });
+  },
+  
+  'highlight_notes': (content: string) => {
+    return content.replace(/^(\s*)(Note:|Warning:|Important:)/gm, '$1> **$2**');
+  }
+};
+
+/**
+ * Apply a style transformation to content
+ */
+export function applyStyle(styleId: string, content: string): { style: string; transformed: string } {
+  if (!(styleId in STYLE_MAP)) {
+    throw new Error(`Style '${styleId}' not supported. Available styles: ${Object.keys(STYLE_MAP).join(', ')}`);
+  }
+  
+  const transformed = STYLE_MAP[styleId](content);
+  
+  return {
+    style: styleId,
+    transformed
+  };
+}
+
+/**
+ * Get list of available styles
+ */
+export function getAvailableStyles(): string[] {
+  return Object.keys(STYLE_MAP);
+}
+
+/**
+ * Apply multiple styles in sequence
+ */
+export function applyMultipleStyles(styleIds: string[], content: string): { styles: string[]; transformed: string } {
+  let transformed = content;
+  
+  for (const styleId of styleIds) {
+    const result = applyStyle(styleId, transformed);
+    transformed = result.transformed;
+  }
+  
+  return {
+    styles: styleIds,
+    transformed
+  };
+} 

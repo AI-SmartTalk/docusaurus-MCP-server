@@ -22,6 +22,10 @@ start-http: ## Start the HTTP server in background
 	@echo "Waiting for server to start..."
 	@sleep 2
 
+stop-http: ## Stop the HTTP server
+	@echo "Stopping HTTP server..."
+	npm run stop
+
 test-all: test-info test-health test-mcp-init test-list-tools test-list-resources test-list-prompts test-call-echo test-call-add test-read-info test-read-greeting test-get-prompt test-invalid-methods ## Run all tests
 
 test-info: ## Test GET / endpoint
